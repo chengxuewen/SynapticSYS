@@ -63,6 +63,13 @@ Thumbs.db
 
 # Python byte code
 *.pyc
+*.pyo
+__pycache__/
+
+# Python packaging
+*.egg-info/
+dist/
+build/
 
 # Binaries
 # --------
@@ -83,12 +90,31 @@ CMakeLists.txt.user
 # --------
 cmake-build*
 build*
+install*
 
 # Temp dirs
 # --------
 nodejs
 stash
 
+# Test files
+# --------
+.pytest_cache/
+.coverage
+htmlcov/
+coverage.xml
+
+# Colcon build outputs
+install/
+log/
+
 # Don't ignore files
 # --------
 .vscode/settings.json
+
+# Coverage cache directory
+.coverage_cache/
+
+# pixi environments
+.pixi/*
+!.pixi/config.toml
