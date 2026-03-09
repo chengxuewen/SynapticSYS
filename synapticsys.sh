@@ -2,23 +2,25 @@
 
 rootDir=$(X= cd -- "$(dirname -- "$0")" && pwd -P)
 
-argBuildMode="full"
+argBuildMode="core"
 argVCSMode="init"
-argWorkDir="$rootDir"
+argTargets=""
+argSkipFinished=false
+argWorkDir="$rootDir/src"
 argBuildDir="$rootDir/build"
 argInstallDir="$rootDir/install"
 while [ $# -gt 0 ]; do
     case "$1" in
-        --mode)
-            if [ "$2" = "full" ] || [ "$2" = "skip" ] || [ "$2" = "base" ] || [ "$2" = "none" ]; then
+        --build-mode)
+            if [ "$2" = "all" ] || [ "$2" = "core" ] || [ "$2" = "base" ] || [ "$2" = "none" ]; then
                 argBuildMode="$2"
                 shift 2
             else
-                echo "Error: Invalid build mode. Use 'full', 'skip', 'base', or 'none'."
+                echo "Error: Invalid build mode. Use 'all', 'core', 'base', or 'none'."
                 exit 1
             fi
             ;;
-        --vcs)
+        --vcs-mode)
             if [ "$2" = "force" ] || [ "$2" = "init" ] || [ "$2" = "ignore" ]; then
                 argVCSMode="$2"
                 shift 2
@@ -54,6 +56,24 @@ while [ $# -gt 0 ]; do
                 exit 1
             fi
             ;;
+        --targets)
+            if [ -n "$2" ]; then
+                argTargets="$2"
+                shift 2
+            else
+                echo "Error: Invalid targets."
+                exit 1
+            fi
+            ;;
+        --skip-finished)
+            if [ "$2" = "true" ] || [ "$2" = "false" ]; then
+                argSkipFinished="$2"
+                shift 2
+            else
+                echo "Error: Invalid skip finished option. Use 'true', or 'false'."
+                exit 1
+            fi
+            ;;
         *)
             echo "Error: Unknown parameter $1"
             exit 1
@@ -75,21 +95,24 @@ else
 fi
 
 # install platform dependency packages
-cd "$argWorkDir" || { echo "Unable to enter directory: $argWorkDir"; exit 1; }
+cd "$rootDir" || { echo "Unable to enter directory: $rootDir"; exit 1; }
 echo "pixi lock..."
 pixi lock
 echo "pixi install..."
 pixi install
 echo "pixi install pixi-pack..."
 pixi global install pixi-pack
+PIXI_ENV=$(pixi run bash -c "echo \$CONDA_PREFIX")
 
+mkdir -p "$rootDir/src/deps"
 if [ "$argVCSMode" = "force" ]; then
     echo "vcs update deps..."
-    pixi run vcs import --input src/repos src/deps --force
+    pixi run vcs import --input $rootDir/src/core.repos $rootDir/src/deps --force
+    pixi run vcs import --input $rootDir/src/extensions.repos $rootDir/src/deps --force
 elif [ "$argVCSMode" = "init" ]; then
     echo "vcs check deps..."
-    mkdir -p "src/deps"
-    pixi run vcs import --input src/repos src/deps
+    pixi run vcs import --input $rootDir/src/core.repos $rootDir/src/deps
+    pixi run vcs import --input $rootDir/src/extensions.repos $rootDir/src/deps
 elif [ "$argVCSMode" = "ignore" ]; then
     echo "vcs ignore..."
 fi
@@ -126,33 +149,47 @@ if [ "$argVCSMode" != "ignore" ]; then
     done
 fi
 
-cd "$argWorkDir" || { echo "Unable to enter directory: $argWorkDir"; exit 1; }
-echo "Enter work directory $argWorkDir"
+echo "Enter root directory $rootDir..."
+cd "$rootDir" || { echo "Unable to enter directory: $rootDir"; exit 1; }
+echo "bash $argInstallDir/setup.bash"
+addonCMDS=""
+if [ -n "$argTargets" ]; then
+    echo "Set packages up to $argTargets..."
+    addonCMDS="$addonCMDS --packages-up-to $argTargets"
+fi
+if [ "$argSkipFinished" = "true" ]; then
+    echo "Set packages skip build finished..."
+    addonCMDS="$addonCMDS --packages-skip-build-finished"
+fi
+#bash "$argInstallDir/setup.bash"
 export RMW_IMPLEMENTATION=rmw_cyclonedds_cpp
-if [ "$argBuildMode" = "full" ]; then
+export PKG_CONFIG_PATH=$PIXI_ENV/lib/pkgconfig:$PKG_CONFIG_PATH
+export CPLUS_INCLUDE_PATH=$PIXI_ENV/include:$CPLUS_INCLUDE_PATH
+export C_INCLUDE_PATH=$PIXI_ENV/include:$C_INCLUDE_PATH
+export CMAKE_INCLUDE_PATH=$PIXI_ENV/include
+export LD_LIBRARY_PATH=$PIXI_ENV/lib
+export LIBRARY_PATH=$PIXI_ENV/lib
+export CMAKE_PREFIX_PATH=$PIXI_ENV
+if [ "$argBuildMode" = "all" ]; then
     echo "Building full packages..."
     pixi run colcon build \
-      --symlink-install \
-      --base-path "$rootDir/src" "$argWorkDir/src" \
+      --merge-install \
+      --base-path "$rootDir/src" "$argWorkDir" \
       --build-base "$argBuildDir" \
       --install-base "$argInstallDir" \
+      --metas "$rootDir/packages.meta" \
+      --packages-ignore lttngpy \
+      $addonCMDS \
       --cmake-args -DBUILD_TESTING=OFF
-elif [ "$argBuildMode" = "skip" ]; then
-    echo "Building base packages..."
+elif [ "$argBuildMode" = "core" ]; then
+    echo "Building core packages..."
     pixi run colcon build \
-      --symlink-install \
-      --base-path "$rootDir/src" "$argWorkDir/src" \
+      --merge-install \
+      --base-path "$rootDir/src/deps/core" "$rootDir/src/core" \
       --build-base "$argBuildDir" \
       --install-base "$argInstallDir" \
-      --packages-skip-build-finished \
-      --cmake-args -DBUILD_TESTING=OFF
-elif [ "$argBuildMode" = "base" ]; then
-    echo "Building base packages..."
-    pixi run colcon build \
-      --symlink-install \
-      --base-path "$rootDir/src" "$argWorkDir/src" \
-      --build-base "$argBuildDir" \
-      --install-base "$argInstallDir" \
-      --packages-up-to synapticsys_base \
+      --metas "$rootDir/packages.meta" \
+      --packages-ignore lttngpy \
+      $addonCMDS \
       --cmake-args -DBUILD_TESTING=OFF
 fi

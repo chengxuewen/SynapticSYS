@@ -1,0 +1,161 @@
+repositories:
+  extensions/gazebo-release/gz_cmake_vendor:
+    type: git
+    url: https://github.com/gazebo-release/gz_cmake_vendor.git
+    version: jazzy
+  extensions/gazebo-release/gz_math_vendor:
+    type: git
+    url: https://github.com/gazebo-release/gz_math_vendor.git
+    version: jazzy
+  extensions/gazebo-release/gz_utils_vendor:
+    type: git
+    url: https://github.com/gazebo-release/gz_utils_vendor.git
+    version: jazzy
+  extensions/osrf/osrf_pycommon:
+    type: git
+    url: https://github.com/osrf/osrf_pycommon.git
+    version: master
+  extensions/osrf/osrf_testing_tools_cpp:
+    type: git
+    url: https://github.com/osrf/osrf_testing_tools_cpp.git
+    version: jazzy
+  extensions/ros-perception/image_common:
+    type: git
+    url: https://github.com/ros-perception/image_common.git
+    version: jazzy
+  extensions/ros-perception/laser_geometry:
+    type: git
+    url: https://github.com/ros-perception/laser_geometry.git
+    version: jazzy
+  extensions/ros-perception/point_cloud_transport:
+    type: git
+    url: https://github.com/ros-perception/point_cloud_transport.git
+    version: jazzy
+  extensions/ros-planning/navigation_msgs:
+    type: git
+    url: https://github.com/ros-planning/navigation_msgs.git
+    version: jazzy
+  extensions/ros-visualization/interactive_markers:
+    type: git
+    url: https://github.com/ros-visualization/interactive_markers.git
+    version: jazzy
+  extensions/ros-visualization/python_qt_binding:
+    type: git
+    url: https://github.com/ros-visualization/python_qt_binding.git
+    version: jazzy
+  extensions/ros-visualization/qt_gui_core:
+    type: git
+    url: https://github.com/ros-visualization/qt_gui_core.git
+    version: jazzy
+  extensions/ros-visualization/rqt:
+    type: git
+    url: https://github.com/ros-visualization/rqt.git
+    version: jazzy
+  extensions/ros-visualization/rqt_action:
+    type: git
+    url: https://github.com/ros-visualization/rqt_action.git
+    version: jazzy
+  extensions/ros-visualization/rqt_bag:
+    type: git
+    url: https://github.com/ros-visualization/rqt_bag.git
+    version: jazzy
+  extensions/ros-visualization/rqt_console:
+    type: git
+    url: https://github.com/ros-visualization/rqt_console.git
+    version: jazzy
+  extensions/ros-visualization/rqt_graph:
+    type: git
+    url: https://github.com/ros-visualization/rqt_graph.git
+    version: jazzy
+  extensions/ros-visualization/rqt_msg:
+    type: git
+    url: https://github.com/ros-visualization/rqt_msg.git
+    version: jazzy
+  extensions/ros-visualization/rqt_plot:
+    type: git
+    url: https://github.com/ros-visualization/rqt_plot.git
+    version: jazzy
+  extensions/ros-visualization/rqt_publisher:
+    type: git
+    url: https://github.com/ros-visualization/rqt_publisher.git
+    version: jazzy
+  extensions/ros-visualization/rqt_py_console:
+    type: git
+    url: https://github.com/ros-visualization/rqt_py_console.git
+    version: jazzy
+  extensions/ros-visualization/rqt_reconfigure:
+    type: git
+    url: https://github.com/ros-visualization/rqt_reconfigure.git
+    version: jazzy
+  extensions/ros-visualization/rqt_service_caller:
+    type: git
+    url: https://github.com/ros-visualization/rqt_service_caller.git
+    version: jazzy
+  extensions/ros-visualization/rqt_shell:
+    type: git
+    url: https://github.com/ros-visualization/rqt_shell.git
+    version: jazzy
+  extensions/ros-visualization/rqt_srv:
+    type: git
+    url: https://github.com/ros-visualization/rqt_srv.git
+    version: jazzy
+  extensions/ros-visualization/rqt_topic:
+    type: git
+    url: https://github.com/ros-visualization/rqt_topic.git
+    version: jazzy
+  extensions/ros-visualization/tango_icons_vendor:
+    type: git
+    url: https://github.com/ros-visualization/tango_icons_vendor.git
+    version: jazzy
+  extensions/ros/kdl_parser:
+    type: git
+    url: https://github.com/ros/kdl_parser.git
+    version: jazzy
+  extensions/ros/resource_retriever:
+    type: git
+    url: https://github.com/ros/resource_retriever.git
+    version: jazzy
+  extensions/ros/robot_state_publisher:
+    type: git
+    url: https://github.com/ros/robot_state_publisher.git
+    version: jazzy
+  extensions/ros/urdfdom:
+    type: git
+    url: https://github.com/ros/urdfdom.git
+    version: jazzy
+  extensions/ros/urdfdom_headers:
+    type: git
+    url: https://github.com/ros/urdfdom_headers.git
+    version: jazzy
+  extensions/ros2-rust/rosidl_rust:
+    type: git
+    url: https://github.com/ros2-rust/rosidl_rust.git
+    version: main
+  extensions/ros2/eigen3_cmake_module:
+    type: git
+    url: https://github.com/ros2/eigen3_cmake_module.git
+    version: jazzy
+  extensions/ros2/geometry2:
+    type: git
+    url: https://github.com/ros2/geometry2.git
+    version: jazzy
+  extensions/ros2/mimick_vendor:
+    type: git
+    url: https://github.com/ros2/mimick_vendor.git
+    version: jazzy
+  extensions/ros2/orocos_kdl_vendor:
+    type: git
+    url: https://github.com/ros2/orocos_kdl_vendor.git
+    version: jazzy
+  extensions/ros2/rviz:
+    type: git
+    url: https://github.com/ros2/rviz.git
+    version: jazzy
+  extensions/core/ros2/sros2:
+    type: git
+    url: https://github.com/ros2/sros2.git
+    version: jazzy
+  extensions/ros2/urdf:
+    type: git
+    url: https://github.com/ros2/urdf.git
+    version: jazzy

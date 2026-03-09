@@ -1,0 +1,16 @@
+# fastrtps.meta
+{
+  "names": {
+    "fastrtps": {
+      "cmake-args": [
+        "-DSECURITY=OFF",
+        "-DCMAKE_DISABLE_FIND_PACKAGE_OpenSSL=ON",
+        "-DTHIRDPARTY=ON"
+      ]
+    },
+    "lttngpy": {
+      "cmake-args": ["-DBUILD_TESTING=OFF"],
+      "ignore": true
+    }
+  }
+}
