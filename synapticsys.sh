@@ -57,11 +57,17 @@ while [ $# -gt 0 ]; do
             fi
             ;;
         --targets)
-            if [ -n "$2" ]; then
-                argTargets="$2"
-                shift 2
-            else
-                echo "Error: Invalid targets."
+            shift
+            while [ $# -gt 0 ] && ! echo "$1" | grep -q "^--"; do
+                if [ -z "$argTargets" ]; then
+                    argTargets="$1"
+                else
+                    argTargets="$argTargets $1"
+                fi
+                shift
+            done
+            if [ -z "$argTargets" ]; then
+                echo "Error: --targets requires at least one value"
                 exit 1
             fi
             ;;
