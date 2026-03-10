@@ -98,7 +98,9 @@ while [ $# -gt 0 ]; do
 done
 
 # reset dyld path environment
-export DYLD_LIBRARY_PATH=
+unset ROS_DISTRO
+unset COLCON_CURRENT_PREFIX
+export DYLD_LIBRARY_PATH=""
 export DYLD_FALLBACK_LIBRARY_PATH=/usr/lib:/usr/local/lib
 
 if command -v pixi >/dev/null 2>&1; then
@@ -125,9 +127,10 @@ PIXI_ENV=$(pixi run bash -c "echo \$CONDA_PREFIX")
 
 if [ ! -f "$rootDir/dist/environment.sh" ]; then
     echo "pixi runtime environment.sh does not exist, creating..."
-    argSkipPackenv=false
+    argSkipPackenv="false"
 fi
-if [[ "$argSkipPackenv" != "true" ]]; then
+
+if [ "$argSkipPackenv" != "true" ]; then
     echo "pixi pack runtime environment..."
     mkdir -p "$rootDir/dist"
     pixi-pack --environment runtime \
@@ -135,10 +138,10 @@ if [[ "$argSkipPackenv" != "true" ]]; then
         -o $rootDir/dist/environment.sh \
         --use-cache $rootDir/.pixi-pack/cache
     echo "run $rootDir/dist/environment.sh..."
-    bash "$rootDir/dist/environment.sh"
-    echo "copy runtime env to $argInstallDir..."
-    mkdir -p "$argInstallDir"
-    cp -r "$rootDir/env/" "$argInstallDir/"
+    bash "$rootDir/dist/environment.sh" -o "$argInstallDir" -e ""
+    # echo "copy runtime env to $argInstallDir..."
+    # mkdir -p "$argInstallDir"
+    # cp -r "$rootDir/env/" "$argInstallDir/"
 fi
 
 mkdir -p "$rootDir/src/deps"
