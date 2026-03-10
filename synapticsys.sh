@@ -6,6 +6,7 @@ argBuildMode="core"
 argVCSMode="init"
 argTargets=""
 argSkipFinished=false
+argSkipPackenv=true
 argWorkDir="$rootDir/src"
 argBuildDir="$rootDir/build"
 argInstallDir="$rootDir/install"
@@ -80,6 +81,15 @@ while [ $# -gt 0 ]; do
                 exit 1
             fi
             ;;
+        --skip-packenv)
+            if [ "$2" = "true" ] || [ "$2" = "false" ]; then
+                argSkipPackenv="$2"
+                shift 2
+            else
+                echo "Error: Invalid skip packenv option. Use 'true', or 'false'."
+                exit 1
+            fi
+            ;;
         *)
             echo "Error: Unknown parameter $1"
             exit 1
@@ -87,6 +97,9 @@ while [ $# -gt 0 ]; do
     esac
 done
 
+# reset dyld path environment
+export DYLD_LIBRARY_PATH=
+export DYLD_FALLBACK_LIBRARY_PATH=/usr/lib:/usr/local/lib
 
 if command -v pixi >/dev/null 2>&1; then
     echo "pixi is installed"
@@ -109,6 +122,24 @@ pixi install
 echo "pixi install pixi-pack..."
 pixi global install pixi-pack
 PIXI_ENV=$(pixi run bash -c "echo \$CONDA_PREFIX")
+
+if [ ! -f "$rootDir/dist/environment.sh" ]; then
+    echo "pixi runtime environment.sh does not exist, creating..."
+    argSkipPackenv=false
+fi
+if [[ "$argSkipPackenv" != "true" ]]; then
+    echo "pixi pack runtime environment..."
+    mkdir -p "$rootDir/dist"
+    pixi-pack --environment runtime \
+        --create-executable \
+        -o $rootDir/dist/environment.sh \
+        --use-cache $rootDir/.pixi-pack/cache
+    echo "run $rootDir/dist/environment.sh..."
+    bash "$rootDir/dist/environment.sh"
+    echo "copy runtime env to $argInstallDir..."
+    mkdir -p "$argInstallDir"
+    cp -r "$rootDir/env/" "$argInstallDir/"
+fi
 
 mkdir -p "$rootDir/src/deps"
 if [ "$argVCSMode" = "force" ]; then
@@ -167,7 +198,10 @@ if [ "$argSkipFinished" = "true" ]; then
     echo "Set packages skip build finished..."
     addonCMDS="$addonCMDS --packages-skip-build-finished"
 fi
-#bash "$argInstallDir/setup.bash"
+if [ -e "$argInstallDir/setup.bash" ]; then
+    echo "bash $argInstallDir/setup.bash..."
+    bash "$argInstallDir/setup.bash"
+fi
 export RMW_IMPLEMENTATION=rmw_cyclonedds_cpp
 export PKG_CONFIG_PATH=$PIXI_ENV/lib/pkgconfig:$PKG_CONFIG_PATH
 export CPLUS_INCLUDE_PATH=$PIXI_ENV/include:$CPLUS_INCLUDE_PATH
@@ -175,7 +209,7 @@ export C_INCLUDE_PATH=$PIXI_ENV/include:$C_INCLUDE_PATH
 export CMAKE_INCLUDE_PATH=$PIXI_ENV/include
 export LD_LIBRARY_PATH=$PIXI_ENV/lib
 export LIBRARY_PATH=$PIXI_ENV/lib
-export CMAKE_PREFIX_PATH=$PIXI_ENV
+export CMAKE_PREFIX_PATH="$PIXI_ENV:$CMAKE_PREFIX_PATH"
 if [ "$argBuildMode" = "all" ]; then
     echo "Building full packages..."
     pixi run colcon build \

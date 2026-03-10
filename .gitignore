@@ -117,4 +117,7 @@ log/
 
 # pixi environments
 .pixi/*
+.pixi-pack/*
 !.pixi/config.toml
+env/
+activate.sh

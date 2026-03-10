@@ -1,0 +1,38 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 88722fe..8af188f 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -68,6 +68,8 @@ macro(build_benchmark)
+     PATCH_COMMAND
+       ${CMAKE_COMMAND} -E chdir <SOURCE_DIR> git apply -p1 --ignore-space-change --whitespace=nowarn
+         ${CMAKE_CURRENT_SOURCE_DIR}/thread_safety_attributes.patch
++      && ${CMAKE_COMMAND} -E chdir <SOURCE_DIR> git apply -p1 --ignore-space-change --whitespace=nowarn
++        ${CMAKE_CURRENT_SOURCE_DIR}/macos_regex_fix.patch
+   )
+ 
+   # The external project will install to the build folder, but we'll install that on make install.
+diff --git a/macos_regex_fix.patch b/macos_regex_fix.patch
+new file mode 100644
+index 0000000..db2ae9c
+--- /dev/null
++++ b/macos_regex_fix.patch
+@@ -0,0 +1,19 @@
++diff --git a/CMakeLists.txt b/CMakeLists.txt
++index ffd7dee..f00f3f8 100644
++--- a/CMakeLists.txt
+++++ b/CMakeLists.txt
++@@ -297,7 +297,13 @@ endif()
++ cxx_feature_check(STD_REGEX ${EXTRA_CXX_FLAGS})
++ cxx_feature_check(GNU_POSIX_REGEX ${EXTRA_CXX_FLAGS})
++ cxx_feature_check(POSIX_REGEX ${EXTRA_CXX_FLAGS})
++-if(NOT HAVE_STD_REGEX AND NOT HAVE_GNU_POSIX_REGEX AND NOT HAVE_POSIX_REGEX)
+++# if(NOT HAVE_STD_REGEX AND NOT HAVE_GNU_POSIX_REGEX AND NOT HAVE_POSIX_REGEX)
+++# On macOS, std::regex is available but the test might fail to run
+++if(APPLE AND NOT HAVE_STD_REGEX AND NOT HAVE_GNU_POSIX_REGEX AND NOT HAVE_POSIX_REGEX)
+++  message(STATUS "Forcing use of std::regex on macOS")
+++  set(HAVE_STD_REGEX 1)
+++  add_definitions(-DHAVE_STD_REGEX)
+++elseif(NOT HAVE_STD_REGEX AND NOT HAVE_GNU_POSIX_REGEX AND NOT HAVE_POSIX_REGEX)
++   message(FATAL_ERROR "Failed to determine the source files for the regular expression backend")
++ endif()
++ if (NOT BENCHMARK_ENABLE_EXCEPTIONS AND HAVE_STD_REGEX

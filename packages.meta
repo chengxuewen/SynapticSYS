@@ -1,4 +1,3 @@
-# fastrtps.meta
 {
   "names": {
     "fastrtps": {
@@ -9,8 +8,13 @@
       ]
     },
     "lttngpy": {
-      "cmake-args": ["-DBUILD_TESTING=OFF"],
-      "ignore": true
+      "cmake-args": ["-DBUILD_TESTING=OFF"]
+    },
+    "cyclonedds": {
+      "cmake-args": [
+        "-DENABLE_SECURITY=OFF",
+        "-DCMAKE_DISABLE_FIND_PACKAGE_OpenSSL=ON"
+      ]
     }
   }
 }

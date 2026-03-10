@@ -23,4 +23,4 @@ pixi install
 echo "pixi install pixi-pack..."
 pixi global install pixi-pack
 echo "pixi-pack --create-executable..."
-pixi-pack --create-executable -o build/environment
+pixi-pack --create-executable --use-cache $ssysRootDir/.pixi-pack/cache -o build/environment
