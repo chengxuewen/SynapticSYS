@@ -5,6 +5,7 @@ rootDir=$(X= cd -- "$(dirname -- "$0")" && pwd -P)
 argBuildMode="core"
 argVCSMode="init"
 argTargets=""
+argPackInjects=""
 argSkipFinished=false
 argSkipPackenv=true
 argWorkDir="$rootDir/src"
@@ -72,6 +73,21 @@ while [ $# -gt 0 ]; do
                 exit 1
             fi
             ;;
+        --pack-injects)
+            shift
+            while [ $# -gt 0 ] && ! echo "$1" | grep -q "^--"; do
+                if [ -z "$argPackInjects" ]; then
+                    argPackInjects="$1"
+                else
+                    argPackInjects="$argPackInjects $1"
+                fi
+                shift
+            done
+            if [ -z "$argPackInjects" ]; then
+                echo "Error: ----pack-injects requires at least one value"
+                exit 1
+            fi
+            ;;
         --skip-finished)
             if [ "$2" = "true" ] || [ "$2" = "false" ]; then
                 argSkipFinished="$2"
@@ -81,7 +97,7 @@ while [ $# -gt 0 ]; do
                 exit 1
             fi
             ;;
-        --skip-packenv)
+        --skip-pack-env)
             if [ "$2" = "true" ] || [ "$2" = "false" ]; then
                 argSkipPackenv="$2"
                 shift 2
@@ -99,9 +115,19 @@ done
 
 # reset dyld path environment
 unset ROS_DISTRO
+unset ROS_PACKAGE_PATH
+unset ROS_ETC_DIR
+unset ROS_ROOT
+unset ROS_MASTER_URI
+unset ROS_PYTHON_VERSION
+unset PYTHONPATH
+unset LD_LIBRARY_PATH
+unset AMENT_PREFIX_PATH
+unset COLCON_PREFIX_PATH
 unset COLCON_CURRENT_PREFIX
 export DYLD_LIBRARY_PATH=""
 export DYLD_FALLBACK_LIBRARY_PATH=/usr/lib:/usr/local/lib
+
 
 if command -v pixi >/dev/null 2>&1; then
     echo "pixi is installed"
@@ -133,16 +159,36 @@ fi
 if [ "$argSkipPackenv" != "true" ]; then
     echo "pixi pack runtime environment..."
     mkdir -p "$rootDir/dist"
+    rm -rf "$rootDir/env/"
     pixi-pack --environment runtime \
         --create-executable \
         -o $rootDir/dist/environment.sh \
         --use-cache $rootDir/.pixi-pack/cache
     echo "run $rootDir/dist/environment.sh..."
-    bash "$rootDir/dist/environment.sh" -o "$argInstallDir" -e ""
-    # echo "copy runtime env to $argInstallDir..."
-    # mkdir -p "$argInstallDir"
-    # cp -r "$rootDir/env/" "$argInstallDir/"
+    bash "$rootDir/dist/environment.sh"
+    if [ -n "$argPackInjects" ]; then
+        echo "pixi pack injects..."
+        pixi-pack --inject $argPackInjects \
+        --create-executable \
+        -o $rootDir/dist/environment-injected.sh \
+        --use-cache $rootDir/.pixi-pack/cache
+        echo "run $rootDir/dist/environment-injected.sh..."
+        bash "$rootDir/dist/environment-injected.sh"
+    fi
+    echo "copy runtime env to $argInstallDir..."
+    mkdir -p "$argInstallDir"
+    cp -r "$rootDir/env/." "$argInstallDir/"
 fi
+
+if [ -e "$rootDir/activate.sh" ]; then
+    newText='$rootDir'
+    echo "set $argInstallDir/activate.sh..."
+    echo '#!/bin/bash' > "$argInstallDir/activate.sh"
+    echo 'rootDir="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" && pwd -P 2>/dev/null || pwd -P)"' >> "$argInstallDir/activate.sh"
+    sed "s|$rootDir/env|$newText|g" "$rootDir/activate.sh" >> "$argInstallDir/activate.sh"
+    echo 'source $rootDir/local_setup.bash' >> "$argInstallDir/activate.sh"
+fi
+
 
 mkdir -p "$rootDir/src/deps"
 if [ "$argVCSMode" = "force" ]; then
