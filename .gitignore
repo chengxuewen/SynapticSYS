@@ -120,4 +120,9 @@ log/
 .pixi-pack/*
 !.pixi/config.toml
 env/
+environment-injected.sh
+environment.sh
 activate.sh
+
+# scripts
+!scripts/install.sh

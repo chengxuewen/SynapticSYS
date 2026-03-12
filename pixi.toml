@@ -39,23 +39,23 @@ importlib-metadata = ">=8.7.0,<9"
 jsonschema = ">=4.25.1,<5"
 graphviz = ">=14.1.2,<15"
 numpy = ">=2.0.2,<3"
-qt = "5.15.*"
 
-[feature.core.target.linux-aarch64.dependencies]
+[feature.runtime.target.linux-aarch64.dependencies]
 libacl = "2.3.*"
 lttng-ust = "*"
 
-[feature.core.target.osx-64.dependencies]
+[feature.runtime.target.osx-64.dependencies]
 libcxx = "*"
 libgcc = "*"
 
-[feature.core.dependencies]
+[feature.runtime.dependencies]
 colcon-common-extensions = ">=0.3.0,<0.4"
 argcomplete = ">=3.6.2,<4"
 python = "3.9.*"
 lark = "==1.1.1"
+qt = "5.15.*"
 yaml = "*"
 
 [environments]
-runtime = { no-default-feature = true, features = ["core"]}
-default = { features = ["core"]}
+runtime = { no-default-feature = true, features = ["runtime"]}
+default = { features = ["runtime"]}

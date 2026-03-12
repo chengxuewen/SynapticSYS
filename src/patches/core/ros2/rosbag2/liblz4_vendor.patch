@@ -1,0 +1,17 @@
+diff --git a/liblz4_vendor/cmake/Modules/Findlz4.cmake b/liblz4_vendor/cmake/Modules/Findlz4.cmake
+index 59dc55d7..9e4a37d5 100644
+--- a/liblz4_vendor/cmake/Modules/Findlz4.cmake
++++ b/liblz4_vendor/cmake/Modules/Findlz4.cmake
+@@ -8,6 +8,12 @@ endif()
+ if(lz4_ROOT_DIR)
+   set(lz4_INCLUDE_PATH PATHS "${lz4_ROOT_DIR}/include" NO_DEFAULT_PATH)
+   set(lz4_LIBRARY_PATH PATHS "${lz4_ROOT_DIR}/lib"     NO_DEFAULT_PATH)
++  # Fallback: if find_library fails, use the first found library file
++  file(GLOB LZ4_LIB_FILES "${lz4_ROOT_DIR}/lib/*lz4*")
++  if(NOT lz4_LIBRARY AND LZ4_LIB_FILES)
++	  list(GET LZ4_LIB_FILES 0 lz4_LIBRARY)
++	  message("Fallback: set lz4_LIBRARY to ${lz4_LIBRARY}")
++  endif()
+ else()
+   set(lz4_INCLUDE_PATH "")
+   set(lz4_LIBRARY_PATH "")

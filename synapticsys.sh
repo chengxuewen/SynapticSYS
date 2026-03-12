@@ -2,23 +2,24 @@
 
 rootDir=$(X= cd -- "$(dirname -- "$0")" && pwd -P)
 
-argBuildMode="core"
+argBuildMode="upto"
 argVCSMode="init"
 argTargets=""
 argPackInjects=""
 argSkipFinished=false
 argSkipPackenv=true
+argCleanCache=false
 argWorkDir="$rootDir/src"
 argBuildDir="$rootDir/build"
 argInstallDir="$rootDir/install"
 while [ $# -gt 0 ]; do
     case "$1" in
         --build-mode)
-            if [ "$2" = "all" ] || [ "$2" = "core" ] || [ "$2" = "base" ] || [ "$2" = "none" ]; then
+            if [ "$2" = "select" ] || [ "$2" = "upto" ]; then
                 argBuildMode="$2"
                 shift 2
             else
-                echo "Error: Invalid build mode. Use 'all', 'core', 'base', or 'none'."
+                echo "Error: Invalid build mode. Use 'select', 'upto'."
                 exit 1
             fi
             ;;
@@ -106,6 +107,15 @@ while [ $# -gt 0 ]; do
                 exit 1
             fi
             ;;
+        --clean-cache)
+            if [ "$2" = "true" ] || [ "$2" = "false" ]; then
+                argCleanCache="$2"
+                shift 2
+            else
+                echo "Error: Invalid clean cache option. Use 'true', or 'false'."
+                exit 1
+            fi
+            ;;
         *)
             echo "Error: Unknown parameter $1"
             exit 1
@@ -149,46 +159,27 @@ echo "pixi install..."
 pixi install
 echo "pixi install pixi-pack..."
 pixi global install pixi-pack
-PIXI_ENV=$(pixi run bash -c "echo \$CONDA_PREFIX")
+PIXI_ENV_PATH=$(pixi run bash -c "echo \$CONDA_PREFIX")
+PIXI_LIB_PATH="${PIXI_ENV_PATH}/lib"
 
 if [ ! -f "$rootDir/dist/environment.sh" ]; then
     echo "pixi runtime environment.sh does not exist, creating..."
     argSkipPackenv="false"
 fi
-
+mkdir -p "$argInstallDir"
 if [ "$argSkipPackenv" != "true" ]; then
     echo "pixi pack runtime environment..."
     mkdir -p "$rootDir/dist"
-    rm -rf "$rootDir/env/"
     pixi-pack --environment runtime \
         --create-executable \
         -o $rootDir/dist/environment.sh \
         --use-cache $rootDir/.pixi-pack/cache
-    echo "run $rootDir/dist/environment.sh..."
-    bash "$rootDir/dist/environment.sh"
-    if [ -n "$argPackInjects" ]; then
-        echo "pixi pack injects..."
-        pixi-pack --inject $argPackInjects \
-        --create-executable \
-        -o $rootDir/dist/environment-injected.sh \
-        --use-cache $rootDir/.pixi-pack/cache
-        echo "run $rootDir/dist/environment-injected.sh..."
-        bash "$rootDir/dist/environment-injected.sh"
-    fi
-    echo "copy runtime env to $argInstallDir..."
-    mkdir -p "$argInstallDir"
-    cp -r "$rootDir/env/." "$argInstallDir/"
+    # echo "run $rootDir/environment.sh..."
+    # bash "$rootDir/environment.sh"
 fi
-
-if [ -e "$rootDir/activate.sh" ]; then
-    newText='$rootDir'
-    echo "set $argInstallDir/activate.sh..."
-    echo '#!/bin/bash' > "$argInstallDir/activate.sh"
-    echo 'rootDir="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" && pwd -P 2>/dev/null || pwd -P)"' >> "$argInstallDir/activate.sh"
-    sed "s|$rootDir/env|$newText|g" "$rootDir/activate.sh" >> "$argInstallDir/activate.sh"
-    echo 'source $rootDir/local_setup.bash' >> "$argInstallDir/activate.sh"
-fi
-
+cp "$rootDir/dist/environment.sh" "$argInstallDir/environment.sh"
+cp "$rootDir/scripts/install.sh" "$argInstallDir/install.sh"
+cp "$rootDir/scripts/pack.sh" "$argInstallDir/pack.sh"
 
 mkdir -p "$rootDir/src/deps"
 if [ "$argVCSMode" = "force" ]; then
@@ -237,48 +228,54 @@ fi
 
 echo "Enter root directory $rootDir..."
 cd "$rootDir" || { echo "Unable to enter directory: $rootDir"; exit 1; }
-echo "bash $argInstallDir/setup.bash"
+echo "bash $argInstallDir/local_setup.bash"
+basePaths="$rootDir/src/deps/core $rootDir/src/core"
 addonCMDS=""
 if [ -n "$argTargets" ]; then
-    echo "Set packages up to $argTargets..."
-    addonCMDS="$addonCMDS --packages-up-to $argTargets"
+    basePaths="$basePaths $rootDir/src $argWorkDir"
+    if [ "$argBuildMode" = "select" ]; then
+        echo "Set packages select $argTargets..."
+        addonCMDS="$addonCMDS --packages-select $argTargets"
+    elif [ "$argBuildMode" = "upto" ]; then
+        echo "Set packages up to $argTargets..."
+        addonCMDS="$addonCMDS --packages-up-to $argTargets"
+    else
+        echo "unknown build mode $argBuildMode..."
+        exit 1
+    fi
+else
+    echo "Set core packages select ..."
 fi
 if [ "$argSkipFinished" = "true" ]; then
     echo "Set packages skip build finished..."
     addonCMDS="$addonCMDS --packages-skip-build-finished"
 fi
-if [ -e "$argInstallDir/setup.bash" ]; then
-    echo "bash $argInstallDir/setup.bash..."
-    bash "$argInstallDir/setup.bash"
+if [ "$argCleanCache" = "true" ]; then
+    echo "Set packages cmake clean cache..."
+    addonCMDS="$addonCMDS --cmake-clean-cache"
+fi
+if [ -e "$argInstallDir/local_setup.bash" ]; then
+    echo "bash $argInstallDir/local_setup.bash..."
+    bash "$argInstallDir/local_setup.bash"
 fi
 export RMW_IMPLEMENTATION=rmw_cyclonedds_cpp
-export PKG_CONFIG_PATH=$PIXI_ENV/lib/pkgconfig:$PKG_CONFIG_PATH
-export CPLUS_INCLUDE_PATH=$PIXI_ENV/include:$CPLUS_INCLUDE_PATH
-export C_INCLUDE_PATH=$PIXI_ENV/include:$C_INCLUDE_PATH
-export CMAKE_INCLUDE_PATH=$PIXI_ENV/include
-export LD_LIBRARY_PATH=$PIXI_ENV/lib
-export LIBRARY_PATH=$PIXI_ENV/lib
-export CMAKE_PREFIX_PATH="$PIXI_ENV:$CMAKE_PREFIX_PATH"
-if [ "$argBuildMode" = "all" ]; then
-    echo "Building full packages..."
-    pixi run colcon build \
-      --merge-install \
-      --base-path "$rootDir/src" "$argWorkDir" \
-      --build-base "$argBuildDir" \
-      --install-base "$argInstallDir" \
-      --metas "$rootDir/packages.meta" \
-      --packages-ignore lttngpy \
-      $addonCMDS \
-      --cmake-args -DBUILD_TESTING=OFF
-elif [ "$argBuildMode" = "core" ]; then
-    echo "Building core packages..."
-    pixi run colcon build \
-      --merge-install \
-      --base-path "$rootDir/src/deps/core" "$rootDir/src/core" \
-      --build-base "$argBuildDir" \
-      --install-base "$argInstallDir" \
-      --metas "$rootDir/packages.meta" \
-      --packages-ignore lttngpy \
-      $addonCMDS \
-      --cmake-args -DBUILD_TESTING=OFF
-fi
+export CPLUS_INCLUDE_PATH="$PIXI_ENV_PATH/include:$CPLUS_INCLUDE_PATH"
+export PKG_CONFIG_PATH="$PIXI_LIB_PATH/pkgconfig:$PKG_CONFIG_PATH"
+export C_INCLUDE_PATH="$PIXI_ENV_PATH/include:$C_INCLUDE_PATH"
+export CMAKE_INCLUDE_PATH="$PIXI_ENV_PATH/include"
+export LD_LIBRARY_PATH="$PIXI_LIB_PATH"
+export LIBRARY_PATH="$PIXI_LIB_PATH"
+export CMAKE_FIND_ROOT_PATH="$PIXI_ENV_PATH;$argBuildDir"
+export CMAKE_FIND_ROOT_PATH_MODE_LIBRARY=ONLY
+export CMAKE_PREFIX_PATH="$PIXI_ENV_PATH"
+echo "Building packages..."
+pixi run colcon build \
+    --merge-install \
+    --base-path $basePaths \
+    --build-base $argBuildDir \
+    --install-base $argInstallDir \
+    --metas $rootDir/packages.meta \
+    --packages-ignore lttngpy \
+    $addonCMDS \
+    --cmake-args \
+    -DBUILD_TESTING=OFF
