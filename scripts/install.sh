@@ -59,5 +59,11 @@ elif [ -f "$pwdDir/local_setup.sh" ]; then
     source "$pwdDir/local_setup.sh"
 fi
 
-export DYLD_LIBRARY_PATH=$rootDir/env/lib:$DYLD_LIBRARY_PATH
+
+export LD_LIBRARY_PATH="$rootDir/env/lib:$LD_LIBRARY_PATH"
+export LD_LIBRARY_PATH=$(echo "$LD_LIBRARY_PATH" | awk -v RS=':' '!a[$1]++' | paste -sd: -)
+
+export DYLD_LIBRARY_PATH="$rootDir/env/lib:$DYLD_LIBRARY_PATH"
+export DYLD_LIBRARY_PATH=$(echo "$DYLD_LIBRARY_PATH" | awk -v RS=':' '!a[$1]++' | paste -sd: -)
+
 cd "$pwdDir" || { echo "Unable to enter directory: $pwdDir"; exit 1; }

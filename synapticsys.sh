@@ -258,7 +258,6 @@ if [ -e "$argInstallDir/local_setup.bash" ]; then
     echo "bash $argInstallDir/local_setup.bash..."
     bash "$argInstallDir/local_setup.bash"
 fi
-export RMW_IMPLEMENTATION=rmw_cyclonedds_cpp
 export CPLUS_INCLUDE_PATH="$PIXI_ENV_PATH/include:$CPLUS_INCLUDE_PATH"
 export PKG_CONFIG_PATH="$PIXI_LIB_PATH/pkgconfig:$PKG_CONFIG_PATH"
 export C_INCLUDE_PATH="$PIXI_ENV_PATH/include:$C_INCLUDE_PATH"

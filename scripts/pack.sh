@@ -24,6 +24,10 @@ while [ $# -gt 0 ]; do
 done
 
 tar -czvf $pwdDir/../$argPackName.tar.gz \
-    --exclude="env" --exclude="activate.sh" \
+    --exclude="env" \
+    --exclude="log" \
+    --exclude="data" \
+    --exclude="storage" \
+    --exclude="activate.sh" \
     -s "/^$pwdDirName/$argPackName/" \
     -C $rootDir/.. $pwdDirName
