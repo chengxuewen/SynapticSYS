@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.8)
-project(synapticsys_core)
+project(synapticsys_base)
 
 # find dependencies
 find_package(ament_cmake REQUIRED)

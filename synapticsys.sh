@@ -4,14 +4,17 @@ rootDir=$(X= cd -- "$(dirname -- "$0")" && pwd -P)
 
 argBuildMode="upto"
 argVCSMode="init"
-argTargets=""
-argPackInjects=""
+argPackEnv="base"
+
 argSkipFinished=false
-argSkipPackenv=true
+argSkipPackEnv=true
 argCleanCache=false
-argWorkDir="$rootDir/src"
-argBuildDir="$rootDir/build"
+argPackages=""
+
 argInstallDir="$rootDir/install"
+argBuildDir="$rootDir/build"
+argWorkDir="$rootDir/src"
+
 while [ $# -gt 0 ]; do
     case "$1" in
         --build-mode)
@@ -29,6 +32,15 @@ while [ $# -gt 0 ]; do
                 shift 2
             else
                 echo "Error: Invalid VCS mode. Use 'force', 'init', or 'ignore'."
+                exit 1
+            fi
+            ;;
+        --pack-env)
+            if [ "$2" = "base" ] || [ "$2" = "extensions" ]; then
+                argPackEnv="$2"
+                shift 2
+            else
+                echo "Error: Invalid pack env. Use 'base', or 'extensions'."
                 exit 1
             fi
             ;;
@@ -59,33 +71,18 @@ while [ $# -gt 0 ]; do
                 exit 1
             fi
             ;;
-        --targets)
+        --packages)
             shift
             while [ $# -gt 0 ] && ! echo "$1" | grep -q "^--"; do
-                if [ -z "$argTargets" ]; then
-                    argTargets="$1"
+                if [ -z "$argPackages" ]; then
+                    argPackages="$1"
                 else
-                    argTargets="$argTargets $1"
+                    argPackages="$argPackages $1"
                 fi
                 shift
             done
-            if [ -z "$argTargets" ]; then
-                echo "Error: --targets requires at least one value"
-                exit 1
-            fi
-            ;;
-        --pack-injects)
-            shift
-            while [ $# -gt 0 ] && ! echo "$1" | grep -q "^--"; do
-                if [ -z "$argPackInjects" ]; then
-                    argPackInjects="$1"
-                else
-                    argPackInjects="$argPackInjects $1"
-                fi
-                shift
-            done
-            if [ -z "$argPackInjects" ]; then
-                echo "Error: ----pack-injects requires at least one value"
+            if [ -z "$argPackages" ]; then
+                echo "Error: --packages requires at least one value"
                 exit 1
             fi
             ;;
@@ -100,7 +97,7 @@ while [ $# -gt 0 ]; do
             ;;
         --skip-pack-env)
             if [ "$2" = "true" ] || [ "$2" = "false" ]; then
-                argSkipPackenv="$2"
+                argSkipPackEnv="$2"
                 shift 2
             else
                 echo "Error: Invalid skip packenv option. Use 'true', or 'false'."
@@ -164,18 +161,16 @@ PIXI_LIB_PATH="${PIXI_ENV_PATH}/lib"
 
 if [ ! -f "$rootDir/dist/environment.sh" ]; then
     echo "pixi runtime environment.sh does not exist, creating..."
-    argSkipPackenv="false"
+    argSkipPackEnv="false"
 fi
 mkdir -p "$argInstallDir"
-if [ "$argSkipPackenv" != "true" ]; then
-    echo "pixi pack runtime environment..."
+if [ "$argSkipPackEnv" != "true" ]; then
+    echo "pixi pack $argPackEnv environment..."
     mkdir -p "$rootDir/dist"
-    pixi-pack --environment runtime \
+    pixi-pack --environment $argPackEnv \
         --create-executable \
         -o $rootDir/dist/environment.sh \
         --use-cache $rootDir/.pixi-pack/cache
-    # echo "run $rootDir/environment.sh..."
-    # bash "$rootDir/environment.sh"
 fi
 cp "$rootDir/dist/environment.sh" "$argInstallDir/environment.sh"
 cp "$rootDir/scripts/install.sh" "$argInstallDir/install.sh"
@@ -184,11 +179,11 @@ cp "$rootDir/scripts/pack.sh" "$argInstallDir/pack.sh"
 mkdir -p "$rootDir/src/deps"
 if [ "$argVCSMode" = "force" ]; then
     echo "vcs update deps..."
-    pixi run vcs import --input $rootDir/src/core.repos $rootDir/src/deps --force
+    pixi run vcs import --input $rootDir/src/base.repos $rootDir/src/deps --force
     pixi run vcs import --input $rootDir/src/extensions.repos $rootDir/src/deps --force
 elif [ "$argVCSMode" = "init" ]; then
     echo "vcs check deps..."
-    pixi run vcs import --input $rootDir/src/core.repos $rootDir/src/deps
+    pixi run vcs import --input $rootDir/src/base.repos $rootDir/src/deps
     pixi run vcs import --input $rootDir/src/extensions.repos $rootDir/src/deps
 elif [ "$argVCSMode" = "ignore" ]; then
     echo "vcs ignore..."
@@ -229,22 +224,22 @@ fi
 echo "Enter root directory $rootDir..."
 cd "$rootDir" || { echo "Unable to enter directory: $rootDir"; exit 1; }
 echo "bash $argInstallDir/local_setup.bash"
-basePaths="$rootDir/src/deps/core $rootDir/src/core"
+basePaths="$rootDir/src/deps/base $rootDir/src/base"
 addonCMDS=""
-if [ -n "$argTargets" ]; then
+if [ -n "$argPackages" ]; then
     basePaths="$basePaths $rootDir/src $argWorkDir"
     if [ "$argBuildMode" = "select" ]; then
-        echo "Set packages select $argTargets..."
-        addonCMDS="$addonCMDS --packages-select $argTargets"
+        echo "Set packages select $argPackages..."
+        addonCMDS="$addonCMDS --packages-select $argPackages"
     elif [ "$argBuildMode" = "upto" ]; then
-        echo "Set packages up to $argTargets..."
-        addonCMDS="$addonCMDS --packages-up-to $argTargets"
+        echo "Set packages up to $argPackages..."
+        addonCMDS="$addonCMDS --packages-up-to $argPackages"
     else
         echo "unknown build mode $argBuildMode..."
         exit 1
     fi
 else
-    echo "Set core packages select ..."
+    echo "Set base packages select ..."
 fi
 if [ "$argSkipFinished" = "true" ]; then
     echo "Set packages skip build finished..."

@@ -155,3 +155,7 @@ repositories:
     type: git
     url: https://github.com/ros2/urdf.git
     version: jazzy
+  extensions/tutorials/ros_tutorials:
+      type: git
+      url: https://github.com/ros/ros_tutorials.git
+      version: jazzy

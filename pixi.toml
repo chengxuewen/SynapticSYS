@@ -40,22 +40,26 @@ jsonschema = ">=4.25.1,<5"
 graphviz = ">=14.1.2,<15"
 numpy = ">=2.0.2,<3"
 
-[feature.runtime.target.linux-aarch64.dependencies]
+[feature.base.target.linux-aarch64.dependencies]
 libacl = "2.3.*"
 lttng-ust = "*"
 
-[feature.runtime.target.osx-64.dependencies]
+[feature.base.target.osx-64.dependencies]
 libcxx = "*"
 libgcc = "*"
 
-[feature.runtime.dependencies]
+[feature.base.dependencies]
 colcon-common-extensions = ">=0.3.0,<0.4"
 argcomplete = ">=3.6.2,<4"
 python = "3.9.*"
 lark = "==1.1.1"
-qt = "5.15.*"
 yaml = "*"
 
+[feature.extensions.dependencies]
+opencv = ">=4.0.0,<5"
+qt = "5.15.*"
+
 [environments]
-runtime = { no-default-feature = true, features = ["runtime"]}
-default = { features = ["runtime"]}
+extensions = { no-default-feature = true, features = ["base", "extensions"]}
+base = { no-default-feature = true, features = ["base"]}
+default = { features = ["base", "extensions"]}
