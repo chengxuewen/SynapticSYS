@@ -262,6 +262,7 @@ export LIBRARY_PATH="$PIXI_LIB_PATH"
 export CMAKE_FIND_ROOT_PATH="$PIXI_ENV_PATH;$argBuildDir"
 export CMAKE_FIND_ROOT_PATH_MODE_LIBRARY=ONLY
 export CMAKE_PREFIX_PATH="$PIXI_ENV_PATH"
+export PIXI_ENV_PATH="$PIXI_ENV_PATH"
 echo "Building packages..."
 pixi run colcon build \
     --merge-install \
@@ -273,3 +274,5 @@ pixi run colcon build \
     $addonCMDS \
     --cmake-args \
     -DBUILD_TESTING=OFF
+#    -DCMAKE_TOOLCHAIN_FILE=$rootDir/cmake/pixi-toolchain.cmake
+#    -DCMAKE_PREFIX_PATH="$PIXI_ENV_PATH;$argInstallDir"
