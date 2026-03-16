@@ -1,6 +1,19 @@
-#!/bin/sh -e
-
-rootDir=$(X= cd -- "$(dirname -- "$0")" && pwd -P)
+if [ -n "$BASH_SOURCE" ]; then
+    scriptPath="$BASH_SOURCE"
+    echo "1=$BASH_SOURCE"
+elif [ -n "$ZSH_VERSION" ]; then
+    scriptPath="${(%):-%x}"
+else
+    scriptPath="$0"
+fi
+[ -z "$scriptPath" ] && scriptPath="$0"
+if __dir="$(cd -- "$(dirname -- "$scriptPath" 2>/dev/null)" && pwd -P 2>/dev/null)"; then
+    scriptDir="$__dir"
+elif __dir="$(cd -- "$(dirname -- "$0")" && pwd -P 2>/dev/null)"; then
+    scriptDir="$__dir"
+else
+    scriptDir="$(pwd -P 2>/dev/null || echo "/tmp")"
+fi
 
 argBuildMode="upto"
 argVCSMode="init"
@@ -11,9 +24,9 @@ argSkipPackEnv=true
 argCleanCache=false
 argPackages=""
 
-argInstallDir="$rootDir/install"
-argBuildDir="$rootDir/build"
-argWorkDir="$rootDir/src"
+argInstallDir="$scriptDir/install"
+argBuildDir="$scriptDir/build"
+argWorkDir="$scriptDir/src"
 
 while [ $# -gt 0 ]; do
     case "$1" in
@@ -46,7 +59,7 @@ while [ $# -gt 0 ]; do
             ;;
         --work-dir)
             if [ -n "$2" ]; then
-                argWorkDir="$2"
+                argWorkDir="$(realpath "$2")"
                 shift 2
             else
                 echo "Error: Invalid work dir."
@@ -55,7 +68,7 @@ while [ $# -gt 0 ]; do
             ;;
         --build-dir)
             if [ -n "$2" ]; then
-                argBuildDir="$2"
+                argBuildDir="$(realpath "$2")"
                 shift 2
             else
                 echo "Error: Invalid build dir."
@@ -64,7 +77,7 @@ while [ $# -gt 0 ]; do
             ;;
         --install-dir)
             if [ -n "$2" ]; then
-                argInstallDir="$2"
+                argInstallDir="$(realpath "$2")"
                 shift 2
             else
                 echo "Error: Invalid install dir."
@@ -120,6 +133,10 @@ while [ $# -gt 0 ]; do
     esac
 done
 
+echo "Set install dir as:$argInstallDir"
+echo "Set build dir as:$argBuildDir"
+echo "Set work dir as:$argWorkDir"
+
 # reset dyld path environment
 unset ROS_DISTRO
 unset ROS_PACKAGE_PATH
@@ -149,7 +166,7 @@ else
 fi
 
 # install platform dependency packages
-cd "$rootDir" || { echo "Unable to enter directory: $rootDir"; exit 1; }
+cd "$scriptDir" || { echo "Unable to enter directory: $scriptDir"; exit 1; }
 echo "pixi lock..."
 pixi lock
 echo "pixi install..."
@@ -159,32 +176,32 @@ pixi global install pixi-pack
 PIXI_ENV_PATH=$(pixi run bash -c "echo \$CONDA_PREFIX")
 PIXI_LIB_PATH="${PIXI_ENV_PATH}/lib"
 
-if [ ! -f "$rootDir/dist/environment.sh" ]; then
+if [ ! -f "$scriptDir/dist/environment.sh" ]; then
     echo "pixi runtime environment.sh does not exist, creating..."
     argSkipPackEnv="false"
 fi
 mkdir -p "$argInstallDir"
 if [ "$argSkipPackEnv" != "true" ]; then
     echo "pixi pack $argPackEnv environment..."
-    mkdir -p "$rootDir/dist"
+    mkdir -p "$scriptDir/dist"
     pixi-pack --environment $argPackEnv \
         --create-executable \
-        -o $rootDir/dist/environment.sh \
-        --use-cache $rootDir/.pixi-pack/cache
+        -o $scriptDir/dist/environment.sh \
+        --use-cache $scriptDir/.pixi-pack/cache
 fi
-cp "$rootDir/dist/environment.sh" "$argInstallDir/environment.sh"
-cp "$rootDir/scripts/install.sh" "$argInstallDir/install.sh"
-cp "$rootDir/scripts/pack.sh" "$argInstallDir/pack.sh"
+cp "$scriptDir/dist/environment.sh" "$argInstallDir/environment.sh"
+cp "$scriptDir/scripts/install.sh" "$argInstallDir/install.sh"
+cp "$scriptDir/scripts/pack.sh" "$argInstallDir/pack.sh"
 
-mkdir -p "$rootDir/src/deps"
+mkdir -p "$scriptDir/src/deps"
 if [ "$argVCSMode" = "force" ]; then
     echo "vcs update deps..."
-    pixi run vcs import --input $rootDir/src/base.repos $rootDir/src/deps --force
-    pixi run vcs import --input $rootDir/src/extensions.repos $rootDir/src/deps --force
+    pixi run vcs import --input $scriptDir/src/base.repos $scriptDir/src/deps --force
+    pixi run vcs import --input $scriptDir/src/extensions.repos $scriptDir/src/deps --force
 elif [ "$argVCSMode" = "init" ]; then
     echo "vcs check deps..."
-    pixi run vcs import --input $rootDir/src/base.repos $rootDir/src/deps
-    pixi run vcs import --input $rootDir/src/extensions.repos $rootDir/src/deps
+    pixi run vcs import --input $scriptDir/src/base.repos $scriptDir/src/deps
+    pixi run vcs import --input $scriptDir/src/extensions.repos $scriptDir/src/deps
 elif [ "$argVCSMode" = "ignore" ]; then
     echo "vcs ignore..."
 fi
@@ -193,13 +210,13 @@ if [ "$argVCSMode" != "ignore" ]; then
     # Apply patches from src/patches directory
     echo "Applying patches from src/patches directory..."
     # Recursively find all patch files in src/patches
-    find "$rootDir/src/patches" -name "*.patch" | while read -r patch_file; do
+    find "$scriptDir/src/patches" -name "*.patch" | while read -r patch_file; do
         # Get relative path from src/patches to the patch file
-        relative_path=$(echo "$patch_file" | sed "s|^$rootDir/src/patches/||")
+        relative_path=$(echo "$patch_file" | sed "s|^$scriptDir/src/patches/||")
         # Extract repository path by removing the patch file name
         repo_path=$(dirname "$relative_path")
         # Full path to the repository in src/deps
-        full_repo_path="$rootDir/src/deps/$repo_path"
+        full_repo_path="$scriptDir/src/deps/$repo_path"
         # Check if the repository directory exists
         if [ -d "$full_repo_path" ]; then
             cd "$full_repo_path"
@@ -221,13 +238,13 @@ if [ "$argVCSMode" != "ignore" ]; then
     done
 fi
 
-echo "Enter root directory $rootDir..."
-cd "$rootDir" || { echo "Unable to enter directory: $rootDir"; exit 1; }
+echo "Enter root directory $scriptDir..."
+cd "$scriptDir" || { echo "Unable to enter directory: $scriptDir"; exit 1; }
 echo "bash $argInstallDir/local_setup.bash"
-basePaths="$rootDir/src/deps/base $rootDir/src/base"
+basePaths="$scriptDir/src/deps/base $scriptDir/src/base"
 addonCMDS=""
 if [ -n "$argPackages" ]; then
-    basePaths="$basePaths $rootDir/src $argWorkDir"
+    basePaths="$basePaths $scriptDir/src $argWorkDir"
     if [ "$argBuildMode" = "select" ]; then
         echo "Set packages select $argPackages..."
         addonCMDS="$addonCMDS --packages-select $argPackages"
@@ -269,10 +286,10 @@ pixi run colcon build \
     --base-path $basePaths \
     --build-base $argBuildDir \
     --install-base $argInstallDir \
-    --metas $rootDir/packages.meta \
+    --metas $scriptDir/packages.meta \
     --packages-ignore lttngpy \
     $addonCMDS \
     --cmake-args \
     -DBUILD_TESTING=OFF
-#    -DCMAKE_TOOLCHAIN_FILE=$rootDir/cmake/pixi-toolchain.cmake
+#    -DCMAKE_TOOLCHAIN_FILE=$scriptDir/cmake/pixi-toolchain.cmake
 #    -DCMAKE_PREFIX_PATH="$PIXI_ENV_PATH;$argInstallDir"
