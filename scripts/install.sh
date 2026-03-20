@@ -1,6 +1,6 @@
+
 if [ -n "$BASH_SOURCE" ]; then
     scriptPath="$BASH_SOURCE"
-    echo "1=$BASH_SOURCE"
 elif [ -n "$ZSH_VERSION" ]; then
     scriptPath="${(%):-%x}"
 else
@@ -14,6 +14,7 @@ elif __dir="$(cd -- "$(dirname -- "$0")" && pwd -P 2>/dev/null)"; then
 else
     scriptDir="$(pwd -P 2>/dev/null || echo "/tmp")"
 fi
+pwdDir="$(pwd)"
 
 unset ROS_DISTRO
 unset ROS_PACKAGE_PATH
