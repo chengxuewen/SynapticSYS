@@ -26,6 +26,7 @@ argPackages=""
 argInstallDir="$scriptDir/install"
 argBuildDir="$scriptDir/build"
 argWorkDir="$scriptDir/src"
+argEnvDir="$scriptDir"
 
 while [ $# -gt 0 ]; do
     case "$1" in
@@ -48,11 +49,20 @@ while [ $# -gt 0 ]; do
             fi
             ;;
         --pack-env)
-            if [ "$2" = "base" ] || [ "$2" = "extensions" ]; then
+            if [ -n "$2" ]; then
                 argPackEnv="$2"
                 shift 2
             else
-                echo "Error: Invalid pack env. Use 'base', or 'extensions'."
+                echo "Error: Invalid pack env. Use 'base', 'extensions', or other env."
+                exit 1
+            fi
+            ;;
+        --env-dir)
+            if [ -n "$2" ]; then
+                argEnvDir="$(realpath "$2")"
+                shift 2
+            else
+                echo "Error: Invalid env dir."
                 exit 1
             fi
             ;;
@@ -165,30 +175,31 @@ else
 fi
 
 # install platform dependency packages
-cd "$scriptDir" || { echo "Unable to enter directory: $scriptDir"; exit 1; }
+echo "enter pixi environment dir $argEnvDir..."
+cd "$argEnvDir" || { echo "Unable to enter directory: $argEnvDir"; exit 1; }
 echo "pixi lock..."
 pixi lock
 echo "pixi install..."
-pixi install
+pixi install --use-environment-activation-cache
 echo "pixi install pixi-pack..."
 pixi global install pixi-pack
 PIXI_ENV_PATH=$(pixi run bash -c "echo \$CONDA_PREFIX")
 PIXI_LIB_PATH="${PIXI_ENV_PATH}/lib"
 
-if [ ! -f "$scriptDir/dist/environment.sh" ]; then
-    echo "pixi runtime environment.sh does not exist, creating..."
+if [ ! -f "$argEnvDir/dist/environment-$argPackEnv.sh" ]; then
+    echo "pixi runtime $argEnvDir/dist/environment-$argPackEnv.sh does not exist, creating..."
     argSkipPackEnv="false"
 fi
 mkdir -p "$argInstallDir"
 if [ "$argSkipPackEnv" != "true" ]; then
     echo "pixi pack $argPackEnv environment..."
-    mkdir -p "$scriptDir/dist"
+    mkdir -p "$argEnvDir/dist"
     pixi-pack --environment $argPackEnv \
         --create-executable \
-        -o $scriptDir/dist/environment.sh \
-        --use-cache $scriptDir/.pixi-pack/cache
+        -o $argEnvDir/dist/environment-$argPackEnv.sh \
+        --use-cache $argEnvDir/.pixi-pack/cache
 fi
-cp "$scriptDir/dist/environment.sh" "$argInstallDir/environment.sh"
+cp "$argEnvDir/dist/environment-$argPackEnv.sh" "$argInstallDir/environment.sh"
 cp "$scriptDir/scripts/install.sh" "$argInstallDir/install.sh"
 cp "$scriptDir/scripts/pack.sh" "$argInstallDir/pack.sh"
 
@@ -237,9 +248,8 @@ if [ "$argVCSMode" != "ignore" ]; then
     done
 fi
 
-echo "Enter root directory $scriptDir..."
-cd "$scriptDir" || { echo "Unable to enter directory: $scriptDir"; exit 1; }
-echo "bash $argInstallDir/local_setup.bash"
+echo "Enter root directory $argEnvDir..."
+cd "$argEnvDir" || { echo "Unable to enter directory: $argEnvDir"; exit 1; }
 basePaths="$scriptDir/src/deps/base $scriptDir/src/base"
 addonCMDS=""
 if [ -n "$argPackages" ]; then
