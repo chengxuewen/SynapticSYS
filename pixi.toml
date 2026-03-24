@@ -2,7 +2,7 @@
 authors = ["chengxuewen <1398831004@qq.com>"]
 channels = ["conda-forge"]
 name = "SynapticSYS"
-platforms = ["osx-64", "linux-aarch64"]
+platforms = ["osx-64", "linux-64", "linux-aarch64"]
 version = "0.1.0"
 
 [tasks]
@@ -38,8 +38,13 @@ flake8-quotes = ">=3.4.0,<4"
 importlib-metadata = ">=8.7.0,<9"
 jsonschema = ">=4.25.1,<5"
 graphviz = ">=14.1.2,<15"
+cmake = "3.*"
 
 [feature.base.target.linux-aarch64.dependencies]
+libacl = "2.3.*"
+lttng-ust = "*"
+
+[feature.base.target.linux-64.dependencies]
 libacl = "2.3.*"
 lttng-ust = "*"
 

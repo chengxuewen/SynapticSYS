@@ -186,7 +186,7 @@ unset COLCON_CURRENT_PREFIX
 export DYLD_LIBRARY_PATH=""
 export DYLD_FALLBACK_LIBRARY_PATH=/usr/lib:/usr/local/lib
 
-
+export PATH="$HOME/.pixi/bin:$PATH"
 if command -v pixi >/dev/null 2>&1; then
     echo "pixi is installed"
 else
