@@ -25,7 +25,9 @@ argPackages=""
 
 argInstallDir="$scriptDir/install"
 argBuildDir="$scriptDir/build"
+argDistDir="$scriptDir/dist"
 argWorkDir="$scriptDir/src"
+argLogDir="$scriptDir/log"
 argEnvDir="$scriptDir"
 
 while [ $# -gt 0 ]; do
@@ -66,8 +68,29 @@ while [ $# -gt 0 ]; do
                 exit 1
             fi
             ;;
+        --log-dir)
+            if [ -n "$2" ]; then
+                mkdir -p "$2"
+                argLogDir="$(realpath "$2")"
+                shift 2
+            else
+                echo "Error: Invalid log dir."
+                exit 1
+            fi
+            ;;
+        --dist-dir)
+            if [ -n "$2" ]; then
+                mkdir -p "$2"
+                argDistDir="$(realpath "$2")"
+                shift 2
+            else
+                echo "Error: Invalid dist dir."
+                exit 1
+            fi
+            ;;
         --work-dir)
             if [ -n "$2" ]; then
+                mkdir -p "$2"
                 argWorkDir="$(realpath "$2")"
                 shift 2
             else
@@ -77,6 +100,7 @@ while [ $# -gt 0 ]; do
             ;;
         --build-dir)
             if [ -n "$2" ]; then
+                mkdir -p "$2"
                 argBuildDir="$(realpath "$2")"
                 shift 2
             else
@@ -86,6 +110,7 @@ while [ $# -gt 0 ]; do
             ;;
         --install-dir)
             if [ -n "$2" ]; then
+                mkdir -p "$2"
                 argInstallDir="$(realpath "$2")"
                 shift 2
             else
@@ -190,16 +215,16 @@ if [ ! -f "$argEnvDir/dist/environment-$argPackEnv.sh" ]; then
     echo "pixi runtime $argEnvDir/dist/environment-$argPackEnv.sh does not exist, creating..."
     argSkipPackEnv="false"
 fi
-mkdir -p "$argInstallDir"
 if [ "$argSkipPackEnv" != "true" ]; then
     echo "pixi pack $argPackEnv environment..."
-    mkdir -p "$argEnvDir/dist"
+    mkdir -p "$argDistDir"
     pixi-pack --environment $argPackEnv \
         --create-executable \
-        -o $argEnvDir/dist/environment-$argPackEnv.sh \
+        -o $argDistDir/environment-$argPackEnv.sh \
         --use-cache $argEnvDir/.pixi-pack/cache
 fi
-cp "$argEnvDir/dist/environment-$argPackEnv.sh" "$argInstallDir/environment.sh"
+mkdir -p "$argInstallDir"
+cp "$argDistDir/environment-$argPackEnv.sh" "$argInstallDir/environment.sh"
 cp "$scriptDir/scripts/install.sh" "$argInstallDir/install.sh"
 cp "$scriptDir/scripts/pack.sh" "$argInstallDir/pack.sh"
 
@@ -265,7 +290,8 @@ if [ -n "$argPackages" ]; then
         exit 1
     fi
 else
-    echo "Set base packages select ..."
+    echo "Set packages up to synapticsys_base..."
+    addonCMDS="$addonCMDS --packages-up-to synapticsys_base"
 fi
 if [ "$argSkipFinished" = "true" ]; then
     echo "Set packages skip build finished..."
@@ -290,7 +316,9 @@ export CMAKE_FIND_ROOT_PATH_MODE_LIBRARY=ONLY
 export CMAKE_PREFIX_PATH="$PIXI_ENV_PATH"
 export PIXI_ENV_PATH="$PIXI_ENV_PATH"
 echo "Building packages..."
-pixi run colcon build \
+pixi run colcon \
+    --log-base $argLogDir \
+    build \
     --merge-install \
     --base-path $basePaths \
     --build-base $argBuildDir \

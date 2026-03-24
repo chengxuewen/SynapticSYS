@@ -11,14 +11,6 @@ repositories:
     type: git
     url: https://github.com/gazebo-release/gz_utils_vendor.git
     version: jazzy
-  extensions/osrf/osrf_pycommon:
-    type: git
-    url: https://github.com/osrf/osrf_pycommon.git
-    version: master
-  extensions/osrf/osrf_testing_tools_cpp:
-    type: git
-    url: https://github.com/osrf/osrf_testing_tools_cpp.git
-    version: jazzy
   extensions/ros-perception/image_common:
     type: git
     url: https://github.com/ros-perception/image_common.git
